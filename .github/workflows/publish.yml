@@ -1,29 +1,97 @@
-name: Publish to npm
+name: npm
 
-# Publishes on every pushed tag like v0.1.0. Cut a release with:
-#   npm version patch   # bumps package.json, commits, creates the tag
-#   git push --follow-tags
+# Manual-only. Trigger from GitHub → Actions → "npm" → Run workflow.
+#
+# Two modes:
+#   - dry-run : install, typecheck, test, build, pack — uploads the tarball as
+#               an artifact. Publishes nothing. Use to validate a release.
+#   - publish : the above, then `npm publish`. Optionally bumps the version
+#               first and pushes the version commit + tag back.
+#
+# One-time setup before the first publish:
+#   1. Create an npm "Automation" access token (npmjs.com → Access Tokens).
+#   2. Add it as a repo secret named NPM_TOKEN
+#      (Settings → Secrets and variables → Actions → New repository secret).
+#
+# Notes:
+#   - `--provenance` requires a public repo. Remove that flag if the repo is private.
+#   - The version-bump push targets the branch you run the workflow from; it will
+#     fail if that branch has protection rules requiring a PR. Bump locally in
+#     that case (npm version) and run the workflow with bump = none.
+
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "What to do"
+        type: choice
+        required: true
+        default: dry-run
+        options:
+          - dry-run
+          - publish
+      bump:
+        description: "Version bump (publish mode only). 'none' publishes the current package.json version."
+        type: choice
+        required: true
+        default: none
+        options:
+          - none
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write # push the version commit + tag when bumping
+  id-token: write # npm provenance
 
 jobs:
-  publish:
+  npm:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write # enables npm provenance
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Check out the actual branch (not a detached HEAD) so a bump commit
+          # can be pushed back, with full history so tags resolve.
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: "https://registry.npmjs.org"
+
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+
+      - name: Bump version
+        if: ${{ inputs.mode == 'publish' && inputs.bump != 'none' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          npm version ${{ inputs.bump }} -m "release: v%s"
+
       - run: npm run build
-      - run: npm publish --provenance --access public
+
+      - name: Pack (dry-run)
+        if: ${{ inputs.mode == 'dry-run' }}
+        run: npm pack
+
+      - name: Upload tarball artifact
+        if: ${{ inputs.mode == 'dry-run' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-tarball
+          path: "*.tgz"
+          if-no-files-found: error
+
+      - name: Publish to npm
+        if: ${{ inputs.mode == 'publish' }}
+        run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Push version commit + tag
+        if: ${{ inputs.mode == 'publish' && inputs.bump != 'none' }}
+        run: git push origin "HEAD:${{ github.ref_name }}" --follow-tags
