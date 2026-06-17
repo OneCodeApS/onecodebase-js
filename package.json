@@ -1,20 +1,20 @@
 {
-  "name": "onecodebase-js",
+  "name": "onebase-js",
   "version": "0.1.0",
-  "description": "Isomorphic JavaScript/TypeScript client for an Onecodebase backend (Postgres + PostgREST + auth + storage + realtime + edge functions).",
+  "description": "Isomorphic JavaScript/TypeScript client for an onebase backend (Postgres + PostgREST + auth + storage + realtime + edge functions).",
   "type": "module",
   "license": "MIT",
   "author": "OneCode ApS",
-  "homepage": "https://github.com/OneCodeApS/onecodebase-js#readme",
+  "homepage": "https://github.com/OneCodeApS/onebase-js#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/OneCodeApS/onecodebase-js.git"
+    "url": "git+https://github.com/OneCodeApS/onebase-js.git"
   },
   "bugs": {
-    "url": "https://github.com/OneCodeApS/onecodebase-js/issues"
+    "url": "https://github.com/OneCodeApS/onebase-js/issues"
   },
   "keywords": [
-    "onecodebase",
+    "onebase",
     "onecode",
     "postgrest",
     "postgres",
