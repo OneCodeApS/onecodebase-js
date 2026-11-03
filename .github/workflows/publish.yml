@@ -49,7 +49,7 @@ jobs:
   npm:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Check out the actual branch (not a detached HEAD) so a bump commit
           # can be pushed back, with full history so tags resolve.
